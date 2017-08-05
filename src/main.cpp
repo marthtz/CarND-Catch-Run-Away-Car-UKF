@@ -39,84 +39,81 @@ int main()
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
-
     if (length && length > 2 && data[0] == '4' && data[1] == '2')
     {
-
       auto s = hasData(std::string(data));
-      if (s != "") {
-      	
-      	
+      if (s != "")
+      {
         auto j = json::parse(s);
         std::string event = j[0].get<std::string>();
-        
-        if (event == "telemetry") {
-          // j[1] is the data JSON object
 
+        if (event == "telemetry")
+        {
+          // j[1] is the data JSON object
           double hunter_x = std::stod(j[1]["hunter_x"].get<std::string>());
           double hunter_y = std::stod(j[1]["hunter_y"].get<std::string>());
           double hunter_heading = std::stod(j[1]["hunter_heading"].get<std::string>());
-          
+
           string lidar_measurment = j[1]["lidar_measurement"];
-          
+
           MeasurementPackage meas_package_L;
           istringstream iss_L(lidar_measurment);
-    	  long long timestamp_L;
+          long long timestamp_L;
 
-    	  // reads first element from the current line
-    	  string sensor_type_L;
-    	  iss_L >> sensor_type_L;
+          // reads first element from the current line
+          string sensor_type_L;
+          iss_L >> sensor_type_L;
 
-      	  // read measurements at this timestamp
-      	  meas_package_L.sensor_type_ = MeasurementPackage::LASER;
+          // read measurements at this timestamp
+          meas_package_L.sensor_type_ = MeasurementPackage::LASER;
           meas_package_L.raw_measurements_ = VectorXd(2);
           float px;
-      	  float py;
+          float py;
           iss_L >> px;
           iss_L >> py;
           meas_package_L.raw_measurements_ << px, py;
           iss_L >> timestamp_L;
           meas_package_L.timestamp_ = timestamp_L;
-          
-    	  ukf.ProcessMeasurement(meas_package_L);
-		 
-    	  string radar_measurment = j[1]["radar_measurement"];
-          
+
+          ukf.ProcessMeasurement(meas_package_L);
+
+          string radar_measurment = j[1]["radar_measurement"];
+
           MeasurementPackage meas_package_R;
           istringstream iss_R(radar_measurment);
-    	  long long timestamp_R;
+          long long timestamp_R;
 
-    	  // reads first element from the current line
-    	  string sensor_type_R;
-    	  iss_R >> sensor_type_R;
+          // reads first element from the current line
+          string sensor_type_R;
+          iss_R >> sensor_type_R;
 
-      	  // read measurements at this timestamp
-      	  meas_package_R.sensor_type_ = MeasurementPackage::RADAR;
+          // read measurements at this timestamp
+          meas_package_R.sensor_type_ = MeasurementPackage::RADAR;
           meas_package_R.raw_measurements_ = VectorXd(3);
           float ro;
-      	  float theta;
-      	  float ro_dot;
+          float theta;
+          float ro_dot;
           iss_R >> ro;
           iss_R >> theta;
           iss_R >> ro_dot;
           meas_package_R.raw_measurements_ << ro,theta, ro_dot;
           iss_R >> timestamp_R;
           meas_package_R.timestamp_ = timestamp_R;
-          
-    	  ukf.ProcessMeasurement(meas_package_R);
 
-	  target_x = ukf.x_[0];
-	  target_y = ukf.x_[1];
+          ukf.ProcessMeasurement(meas_package_R);
 
-    	  double heading_to_target = atan2(target_y - hunter_y, target_x - hunter_x);
-    	  while (heading_to_target > M_PI) heading_to_target-=2.*M_PI; 
-    	  while (heading_to_target <-M_PI) heading_to_target+=2.*M_PI;
-    	  //turn towards the target
-    	  double heading_difference = heading_to_target - hunter_heading;
-    	  while (heading_difference > M_PI) heading_difference-=2.*M_PI; 
-    	  while (heading_difference <-M_PI) heading_difference+=2.*M_PI;
+          target_x = ukf.x_[0];
+          target_y = ukf.x_[1];
 
-    	  double distance_difference = sqrt((target_y - hunter_y)*(target_y - hunter_y) + (target_x - hunter_x)*(target_x - hunter_x));
+          double heading_to_target = atan2(target_y - hunter_y, target_x - hunter_x);
+          while (heading_to_target > M_PI) heading_to_target-=2.*M_PI; 
+          while (heading_to_target <-M_PI) heading_to_target+=2.*M_PI;
+          //turn towards the target
+          double heading_difference = heading_to_target - hunter_heading;
+          while (heading_difference > M_PI) heading_difference-=2.*M_PI; 
+          while (heading_difference <-M_PI) heading_difference+=2.*M_PI;
+
+          double distance_difference = sqrt((target_y - hunter_y)*(target_y - hunter_y) + (target_x - hunter_x)*(target_x - hunter_x));
 
           json msgJson;
           msgJson["turn"] = heading_difference;
@@ -124,15 +121,15 @@ int main()
           auto msg = "42[\"move_hunter\"," + msgJson.dump() + "]";
           // std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-	  
         }
-      } else {
+      }
+      else
+      {
         // Manual driving
         std::string msg = "42[\"manual\",{}]";
         ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
       }
     }
-
   });
 
   // We don't need this since we're not using HTTP but if it's removed the program
