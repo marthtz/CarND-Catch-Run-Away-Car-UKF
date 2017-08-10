@@ -329,6 +329,29 @@ void UKF::Prediction(double delta_t)
 
 }
 
+
+
+
+void UKF::PredictionTarget(double delta_t)
+{
+  // Long term prediction overwrite estimates for UKf -> create backup
+  VectorXd backup_x = x_;
+  MatrixXd backup_P = P_;
+
+  Prediction(delta_t);
+
+  // Save the prediction for target
+  target_x_ = x_;
+
+  // Restore estimates for UKF
+  x_ = backup_x;
+  P_ = backup_P;
+
+  return;
+}
+
+
+
 /**
  * Updates the state and the state covariance matrix using a laser measurement.
  * @param {MeasurementPackage} meas_package
